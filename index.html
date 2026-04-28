@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>งบประมาณรายเดือน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f11;
+  --surface: #18181c;
+  --surface2: #222228;
+  --border: #2e2e38;
+  --text: #f0f0f4;
+  --muted: #8888a0;
+  --hint: #55556a;
+  --green: #22c98a;
+  --green-dim: #0d4a32;
+  --red: #ff5c6a;
+  --red-dim: #4a0d14;
+  --accent: #7c6af7;
+  --accent-dim: #2a244a;
+  --yellow: #f5c542;
+  --font: 'Sarabun', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+.app { max-width: 430px; margin: 0 auto; padding: 0 0 80px; }
+
+/* Header */
+.header { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.header h1 { font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+.badge { font-size: 10px; font-family: var(--mono); background: var(--accent-dim); color: var(--accent); padding: 3px 8px; border-radius: 20px; }
+.header-sub { font-size: 12px; color: var(--muted); }
+
+/* Summary */
+.summary { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+.sum-cell { background: var(--surface); padding: 14px 16px; }
+.sum-cell.full { grid-column: 1/-1; }
+.sum-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+.sum-val { font-size: 22px; font-family: var(--mono); font-weight: 500; }
+.sum-val.pos { color: var(--green); }
+.sum-val.neg { color: var(--red); }
+.sum-val.neutral { color: var(--text); }
+
+/* Section */
+.section { padding: 20px 16px 0; }
+.section-title { font-size: 10px; color: var(--hint); text-transform: uppercase; letter-spacing: .1em; font-family: var(--mono); margin-bottom: 10px; padding-left: 2px; }
+
+/* Card */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
+.card-row { display: flex; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--border); gap: 12px; }
+.card-row:last-child { border-bottom: none; }
+.row-lbl { flex: 1; font-size: 14px; color: var(--muted); }
+.row-tag { font-size: 10px; font-family: var(--mono); color: var(--accent); background: var(--accent-dim); padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+.row-val { font-size: 14px; font-family: var(--mono); font-weight: 500; min-width: 90px; text-align: right; }
+.row-val.pos { color: var(--green); }
+.row-val.neg { color: var(--red); }
+input[type=number] {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 16px; font-family: var(--mono); font-weight: 500;
+  padding: 8px 10px; width: 110px; text-align: right; outline: none;
+  -webkit-appearance: none; appearance: none;
+}
+input[type=number]:focus { border-color: var(--accent); }
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* Expense */
+.exp-row { display: flex; align-items: center; padding: 11px 12px 11px 16px; border-bottom: 1px solid var(--border); gap: 10px; cursor: pointer; active-color: var(--surface2); }
+.exp-row:last-child { border-bottom: none; }
+.exp-row:active { background: var(--surface2); }
+.exp-left { flex: 1; min-width: 0; }
+.exp-name { font-size: 14px; color: var(--text); line-height: 1.3; }
+.exp-cat { font-size: 10px; padding: 1px 5px; border-radius: 4px; margin-top: 2px; display: inline-block; }
+.exp-cat.need { background: #1a3a2a; color: #22c98a; }
+.exp-cat.cut { background: #3a1a2a; color: #ff5c6a; }
+.exp-right { text-align: right; min-width: 90px; }
+.exp-total-amt { font-size: 14px; font-family: var(--mono); color: var(--muted); }
+.exp-status { font-size: 11px; font-family: var(--mono); margin-top: 2px; }
+.exp-status.done { color: var(--green); }
+.exp-status.partial { color: var(--yellow); }
+.exp-status.empty { color: var(--hint); }
+.exp-actions { display: flex; gap: 2px; }
+.icon-btn { width: 30px; height: 30px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.icon-btn:active { background: var(--surface2); }
+.icon-btn.del:active { color: var(--red); }
+.icon-btn.edit:active { color: var(--accent); }
+
+/* Pay modal */
+.pay-modal-amounts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.pay-field { display: flex; flex-direction: column; gap: 6px; }
+.pay-field label { font-size: 12px; color: var(--muted); }
+.pay-field input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 18px; font-family: var(--mono); font-weight: 500; padding: 12px; text-align: right; outline: none; -webkit-appearance: none; }
+.pay-field input:focus { border-color: var(--accent); }
+.pay-hint { font-size: 12px; font-family: var(--mono); text-align: center; padding: 8px; border-radius: 8px; background: var(--surface2); margin-bottom: 14px; }
+.pay-hint.ok { color: var(--green); background: var(--green-dim); }
+.pay-hint.warn { color: var(--yellow); background: #3a2a00; }
+.pay-hint.info { color: var(--muted); }
+
+/* Modal */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 100; align-items: flex-end; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px 20px 0 0; padding: 20px 20px 36px; width: 100%; max-width: 430px; }
+.modal-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.modal label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
+.modal input[type=text], .modal textarea, .modal select {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 15px; font-family: var(--font);
+  padding: 10px 12px; outline: none; margin-bottom: 12px;
+}
+.modal input[type=text]:focus, .modal textarea:focus, .modal select:focus { border-color: var(--accent); }
+.modal textarea { resize: none; height: 70px; }
+.modal select { -webkit-appearance: none; appearance: none; }
+.modal input[type=number] { width: 100%; margin-bottom: 16px; }
+.modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-cancel { padding: 13px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 14px; font-family: var(--font); cursor: pointer; }
+.btn-save { padding: 13px; border-radius: 12px; border: none; background: var(--accent); color: #fff; font-size: 14px; font-family: var(--font); font-weight: 600; cursor: pointer; }
+
+/* Add row */
+.add-row { display: flex; align-items: center; justify-content: center; padding: 12px; gap: 6px; color: var(--accent); font-size: 13px; cursor: pointer; border-top: 1px solid var(--border); }
+.add-row:active { background: var(--surface2); }
+
+/* Balance */
+.bal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
+.bal-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.bal-row:last-child { border-bottom: none; }
+.bal-row.highlight { background: var(--surface2); }
+.bal-key { font-size: 13px; color: var(--muted); }
+.bal-val { font-size: 14px; font-family: var(--mono); font-weight: 500; }
+.bal-val.pos { color: var(--green); }
+.bal-val.neg { color: var(--red); }
+
+/* Goal progress */
+.goal-bar-wrap { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.goal-bar-top { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
+.goal-bar-bg { background: var(--surface2); border-radius: 99px; height: 8px; overflow: hidden; }
+.goal-bar-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width .4s; }
+.goal-bar-fill.warn { background: var(--yellow); }
+.goal-bar-fill.over { background: var(--accent); }
+
+/* Chart */
+.chart-wrap { padding: 4px 8px 8px; }
+canvas#chart { width: 100%; height: 160px; display: block; }
+
+/* History */
+.hist-item { display: flex; align-items: center; padding: 9px 12px 9px 16px; border-bottom: 1px solid var(--border); gap: 4px; }
+.hist-item:last-child { border-bottom: none; }
+.hist-left { flex: 1; min-width: 0; }
+.hist-no { font-size: 13px; color: var(--text); }
+.hist-date { font-size: 11px; color: var(--hint); margin-left: 5px; }
+.hist-sub { font-size: 11px; color: var(--hint); margin-top: 1px; }
+.hist-note { font-size: 11px; color: var(--accent); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+
+/* Sync */
+.sync-wrap { padding: 16px; }
+.sync-btn { width: 100%; padding: 15px; border-radius: 14px; background: var(--accent); border: none; color: #fff; font-size: 15px; font-family: var(--font); font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s, transform .1s; }
+.sync-btn:active { transform: scale(.97); opacity: .85; }
+.sync-btn.loading { opacity: .5; pointer-events: none; }
+.status-msg { text-align: center; font-size: 12px; font-family: var(--mono); margin-top: 8px; min-height: 16px; color: var(--muted); }
+.status-msg.ok { color: var(--green); }
+.status-msg.err { color: var(--red); }
+
+/* Total row */
+.total-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--surface2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 1px; }
+.total-row .tk { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-family: var(--mono); }
+.total-row .tv { font-size: 13px; font-family: var(--mono); color: var(--red); }
+
+/* Special goals */
+.sgoal-item { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.sgoal-item:last-child { border-bottom: none; }
+.sgoal-header { display: flex; align-items: center; margin-bottom: 6px; }
+.sgoal-name { flex: 1; font-size: 14px; color: var(--text); font-weight: 500; }
+.sgoal-pct { font-size: 12px; font-family: var(--mono); color: var(--accent); margin-right: 4px; }
+.sgoal-amounts { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-family: var(--mono); }
+.sgoal-remain { color: var(--yellow); }
+.sgoal-remain.done { color: var(--green); }
+.sgoal-bar-bg { background: var(--surface2); border-radius: 99px; height: 6px; overflow: hidden; margin-bottom: 6px; }
+.sgoal-bar-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width .4s; }
+.sgoal-bar-fill.done { background: var(--green); }
+.sgoal-add-saved { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.sgoal-add-inp { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; font-family: var(--mono); padding: 6px 10px; text-align: right; outline: none; -webkit-appearance: none; }
+.sgoal-add-inp:focus { border-color: var(--accent); }
+.sgoal-add-btn { padding: 6px 12px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-family: var(--font); cursor: pointer; white-space: nowrap; }
+.sgoal-actions { display: flex; gap: 2px; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-top">
+      <h1>งบประมาณ</h1>
+      <span class="badge">2 งวด / เดือน</span>
+    </div>
+    <div class="header-sub">กรอกรายรับแล้วกด sync ไป Sheets</div>
+  </div>
+
+  <div class="summary">
+    <div class="sum-cell"><div class="sum-lbl">รายรับ/เดือน</div><div class="sum-val pos" id="s-inc">฿0</div></div>
+    <div class="sum-cell"><div class="sum-lbl">รายจ่าย/เดือน</div><div class="sum-val neg" id="s-exp">฿0</div></div>
+    <div class="sum-cell full"><div class="sum-lbl">คงเหลือ/เดือน</div><div class="sum-val neutral" id="s-bal">฿0</div></div>
+  </div>
+
+  <!-- รายรับ -->
+  <div class="section">
+    <div class="section-title">กรอกรายรับ</div>
+    <div class="card">
+      <div class="card-row">
+        <div class="row-lbl">งวด 1<span class="row-tag">C2</span></div>
+        <input type="number" id="c2" value="0" min="0" inputmode="decimal" oninput="calc()">
+      </div>
+      <div class="card-row">
+        <div class="row-lbl">งวด 2<span class="row-tag">D2</span></div>
+        <input type="number" id="d2" value="0" min="0" inputmode="decimal" oninput="calc()">
+      </div>
+      <div class="card-row">
+        <div class="row-lbl">รวม/เดือน<span class="row-tag">B2</span></div>
+        <div class="row-val pos" id="b2-val">฿0</div>
+        <button onclick="resetIncome()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-family:var(--font);padding:6px 10px;cursor:pointer;">รีเซ็ต</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- รายจ่าย -->
+  <div class="section">
+    <div class="section-title">รายจ่าย — แก้ไข / ลบ / เพิ่มได้</div>
+    <div class="card">
+      <div id="exp-list"></div>
+      <div class="add-row" onclick="openModal(-1)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        เพิ่มรายการใหม่
+      </div>
+    </div>
+    <div class="total-row">
+      <span class="tk">รวมรายจ่าย</span>
+      <span class="tv" id="exp-total">฿0</span>
+    </div>
+  </div>
+
+  <!-- สรุปคงเหลือ -->
+  <div class="section">
+    <div class="section-title">สรุปคงเหลือ</div>
+    <div class="bal-card">
+      <div class="bal-row highlight"><span class="bal-key">คงเหลือ / เดือน</span><span class="bal-val" id="b-month">฿0</span></div>
+      <div class="bal-row"><span class="bal-key">งวด 1 (ครึ่งหนึ่ง)</span><span class="bal-val" id="b-w1">฿0</span></div>
+      <div class="bal-row"><span class="bal-key">งวด 2 (ครึ่งหนึ่ง)</span><span class="bal-val" id="b-w2">฿0</span></div>
+      <div class="bal-row highlight"><span class="bal-key">งบรายวัน งวด 1 (÷12)</span><span class="bal-val" id="d-w1">฿0</span></div>
+      <div class="bal-row highlight"><span class="bal-key">งบรายวัน งวด 2 (÷12)</span><span class="bal-val" id="d-w2">฿0</span></div>
+    </div>
+  </div>
+
+  <!-- เป้าหมายเงินออม -->
+  <div class="section">
+    <div class="section-title">เป้าหมายเงินออม / ปี</div>
+    <div class="bal-card">
+      <div class="bal-row">
+        <span class="bal-key">เป้าหมาย</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="goal-input" value="0" min="0" inputmode="decimal" oninput="renderGoal()" style="width:120px;font-size:14px;padding:6px 8px;">
+          <span style="font-size:12px;color:var(--muted)">บาท</span>
+        </div>
+      </div>
+      <div class="goal-bar-wrap">
+        <div class="goal-bar-top">
+          <span id="goal-saved-lbl">เก็บได้ ฿0</span>
+          <span id="goal-pct-lbl">0%</span>
+        </div>
+        <div class="goal-bar-bg"><div class="goal-bar-fill" id="goal-bar" style="width:0%"></div></div>
+      </div>
+      <div class="bal-row highlight"><span class="bal-key">ยังขาดอีก</span><span class="bal-val" id="goal-remain">฿0</span></div>
+      <div class="bal-row"><span class="bal-key">ต้องเก็บ/ก้อน (เฉลี่ย)</span><span class="bal-val" id="goal-per-round">฿0</span></div>
+    </div>
+  </div>
+
+  <!-- เป้าหมายพิเศษ -->
+  <div class="section">
+    <div class="section-title">เป้าหมายพิเศษ</div>
+    <div class="card">
+      <div id="special-goals-list"></div>
+      <div class="add-row" onclick="openGoalModal(-1)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        เพิ่มเป้าหมายใหม่
+      </div>
+    </div>
+  </div>
+
+  <!-- Goal modal -->
+  <div class="modal-bg" id="goal-modal-bg">
+    <div class="modal">
+      <div class="modal-title" id="goal-modal-title">เพิ่มเป้าหมาย</div>
+      <label>ชื่อเป้าหมาย</label>
+      <input type="text" id="goal-modal-name" placeholder="เช่น ไปญี่ปุ่น, ซื้อโน้ตบุ๊ก">
+      <label>จำนวนเงินเป้าหมาย (บาท)</label>
+      <input type="number" id="goal-modal-target" min="0" inputmode="decimal" placeholder="35000">
+      <label>เก็บได้แล้ว (บาท)</label>
+      <input type="number" id="goal-modal-saved" min="0" inputmode="decimal" placeholder="0" style="margin-bottom:16px">
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeGoalModal()">ยกเลิก</button>
+        <button class="btn-save" onclick="saveGoalModal()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- บันทึกประวัติ -->
+  <div class="section">
+    <div class="section-title">บันทึกรายได้สะสม</div>
+    <div class="card">
+      <div style="display:flex;align-items:center;padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border)">
+        <div style="flex:1;font-size:11px;color:var(--hint)">ก้อนที่</div>
+        <div style="font-size:11px;color:var(--hint);min-width:80px;text-align:right">งวด 1</div>
+        <div style="font-size:11px;color:var(--hint);min-width:80px;text-align:right;margin-right:64px">งวด 2</div>
+      </div>
+      <div id="history-list"></div>
+      <div id="save-round-btn" class="add-row" onclick="saveRound()" style="opacity:0.4;pointer-events:none;cursor:not-allowed;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span id="save-round-lbl">กรอกรายรับให้ครบ 2 งวดก่อน</span>
+      </div>
+    </div>
+
+    <!-- กราฟ -->
+    <div class="card" style="margin-top:8px">
+      <div style="padding:12px 16px 4px;font-size:11px;color:var(--hint);font-family:var(--mono)">กราฟรายรับ-คงเหลือแต่ละก้อน</div>
+      <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    </div>
+
+    <div class="bal-card" style="margin-top:8px">
+      <div class="bal-row highlight"><span class="bal-key">รายรับสะสม</span><span class="bal-val pos" id="h-total-inc">฿0</span></div>
+      <div class="bal-row"><span class="bal-key">รายจ่ายสะสม</span><span class="bal-val neg" id="h-total-exp">฿0</span></div>
+      <div class="bal-row highlight"><span class="bal-key">คงเหลือสะสม</span><span class="bal-val" id="h-total-bal">฿0</span></div>
+      <div class="bal-row"><span class="bal-key">ยังต้องเก็บอีก (ครบ 24 ก้อน)</span><span class="bal-val" id="h-remaining" style="color:var(--accent)">฿0</span></div>
+      <div class="bal-row"><span class="bal-key">บันทึกแล้ว <span id="h-count">0</span> / 24 ก้อน</span><span class="bal-val" id="h-progress" style="color:var(--accent)">0%</span></div>
+    </div>
+  </div>
+
+  <!-- Pay modal — กดที่รายการเพื่อกรอกงวด -->
+  <div class="modal-bg" id="pay-modal-bg">
+    <div class="modal">
+      <div class="modal-title" id="pay-modal-title">กรอกจำนวนที่จ่าย</div>
+      <div class="pay-modal-amounts">
+        <div class="pay-field">
+          <label id="pay-lbl1">งวด 1</label>
+          <input type="number" id="pay-inp1" min="0" inputmode="decimal" placeholder="0" oninput="updatePayHint()">
+        </div>
+        <div class="pay-field">
+          <label id="pay-lbl2">งวด 2</label>
+          <input type="number" id="pay-inp2" min="0" inputmode="decimal" placeholder="0" oninput="updatePayHint()">
+        </div>
+      </div>
+      <div class="pay-hint info" id="pay-hint">รวมต้องจ่าย ฿0</div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closePayModal()">ยกเลิก</button>
+        <button class="btn-save" onclick="savePayModal()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expense modal -->
+  <div class="modal-bg" id="modal-bg">
+    <div class="modal">
+      <div class="modal-title" id="modal-title">แก้ไขรายการ</div>
+      <label>ชื่อรายการ</label>
+      <input type="text" id="modal-name" placeholder="เช่น ค่าน้ำ">
+      <label>จำนวนเงิน/เดือน (บาท)</label>
+      <input type="number" id="modal-amount" min="0" inputmode="decimal" placeholder="0.00">
+      <label>หมวดหมู่</label>
+      <select id="modal-cat">
+        <option value="need">จำเป็น</option>
+        <option value="cut">ปรับลดได้</option>
+      </select>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+        <button class="btn-save" onclick="saveModal()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Round modal -->
+  <div class="modal-bg" id="round-modal-bg">
+    <div class="modal">
+      <div class="modal-title">แก้ไขก้อนที่ <span id="round-modal-no"></span></div>
+      <label>งวด 1 (บาท)</label>
+      <input type="number" id="round-w1" min="0" inputmode="decimal" placeholder="0.00">
+      <label>งวด 2 (บาท)</label>
+      <input type="number" id="round-w2" min="0" inputmode="decimal" placeholder="0.00">
+      <label>หมายเหตุ (ไม่บังคับ)</label>
+      <textarea id="round-note" placeholder="เช่น เดือนนี้มีค่าใช้จ่ายพิเศษ..."></textarea>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeRoundModal()">ยกเลิก</button>
+        <button class="btn-save" onclick="saveRoundEdit()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sync-wrap">
+    <button class="sync-btn" id="sync-btn" onclick="syncToSheets()">
+      <svg id="sync-icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M15 9A6 6 0 1 1 9 3" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M11.5 3H15.5V7" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="sync-label">อัปเดต Google Sheets</span>
+    </button>
+    <div class="status-msg" id="status-msg"></div>
+  </div>
+
+</div>
+
+<script>
+// ====================================================
+// CONFIG — วาง Apps Script URL ตรงนี้ (บรรทัด 492)
+// ====================================================
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx3On-3bE_vSYfGnVSNH2gIxx5AzaDVccJMXbusBMBb7m7uKA6CGYtXk0yKJ9FPSmsgXg/exec'; // ← วาง URL ตรงนี้
+
+const FILE_ID = '1_y4YXcLqulvFFAqS09Sv1PT36bA2xujvm7bCez5OvIU';
+const STORAGE_KEY = 'budget_items_v2';
+const HISTORY_KEY = 'budget_history_v2';
+const GOAL_KEY = 'budget_goal_v1';
+
+const defaultItems = [
+  {name:'เน็ตมือถือ', amount:533.93, cat:'need'},
+  {name:'เน็ตบ้าน', amount:768.26, cat:'need'},
+  {name:'ประกัน', amount:835, cat:'need'},
+  {name:'ค่า YTP', amount:69, cat:'cut'},
+  {name:'NF (Netflix)', amount:170, cat:'cut'},
+  {name:'ค่างวดรถ', amount:2700, cat:'need'},
+  {name:'ค่า Shopee', amount:567.43, cat:'cut'},
+  {name:'ค่าไปสอบ', amount:1000, cat:'need'},
+  {name:'ญี่ปุ่น (ฉุกเฉิน)', amount:2160, cat:'need'},
+  {name:'ให้กำลังใจตัวเอง', amount:540, cat:'cut'},
+  {name:'ค่าน้ำมัน', amount:600, cat:'need'},
+];
+
+let items = [];
+let history = [];
+let editIdx = -1;
+let editRoundIdx = -1;
+
+try { items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultItems; } catch(e) { items = defaultItems; }
+try { history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e) { history = []; }
+
+function saveItems() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch(e){} }
+function saveHistory() { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e){} }
+
+function fmt(n) {
+  return (n < 0 ? '-' : '') + '฿' + Math.abs(n).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function setColor(el, n) {
+  el.classList.remove('pos','neg','neutral');
+  el.classList.add(n > 0 ? 'pos' : n < 0 ? 'neg' : 'neutral');
+}
+
+// ====================================================
+// Expense list
+// ====================================================
+function renderItems() {
+  const totalExp = items.reduce((s,i) => s + i.amount, 0);
+  document.getElementById('exp-list').innerHTML = items.map((it, idx) => {
+    const p1 = parseFloat(it.pay1) || 0;
+    const p2 = parseFloat(it.pay2) || 0;
+    const paid = p1 + p2;
+    const remain = it.amount - paid;
+    let statusText = '', statusClass = 'empty';
+    if (paid === 0) {
+      statusText = `ยังไม่ได้จ่าย · ${fmt(it.amount)}`;
+      statusClass = 'empty';
+    } else if (remain > 0) {
+      statusText = `จ่ายแล้ว ${fmt(paid)} · ขาด ${fmt(remain)}`;
+      statusClass = 'partial';
+    } else {
+      statusText = `✓ จ่ายครบ ${fmt(paid)}`;
+      statusClass = 'done';
+    }
+    return `
+    <div class="exp-row" onclick="openPayModal(${idx})">
+      <div class="exp-left">
+        <div class="exp-name">${it.name}</div>
+        <span class="exp-cat ${it.cat||'need'}">${it.cat==='cut'?'ปรับลดได้':'จำเป็น'}</span>
+      </div>
+      <div class="exp-right">
+        <div class="exp-total-amt">${fmt(it.amount)}</div>
+        <div class="exp-status ${statusClass}">${statusText}</div>
+      </div>
+      <div class="exp-actions" onclick="event.stopPropagation()">
+        <button class="icon-btn edit" onclick="openModal(${idx})">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="icon-btn del" onclick="deleteItem(${idx})">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5 3.5l.5 8M9 3.5l-.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('exp-total').textContent = fmt(totalExp);
+  calc();
+}
+
+// ====================================================
+// Pay modal
+// ====================================================
+let payIdx = -1;
+
+function openPayModal(idx) {
+  payIdx = idx;
+  const it = items[idx];
+  document.getElementById('pay-modal-title').textContent = it.name;
+  document.getElementById('pay-inp1').value = it.pay1 || '';
+  document.getElementById('pay-inp2').value = it.pay2 || '';
+  updatePayHint();
+  document.getElementById('pay-modal-bg').classList.add('open');
+  setTimeout(() => document.getElementById('pay-inp1').focus(), 100);
+}
+
+function closePayModal() {
+  document.getElementById('pay-modal-bg').classList.remove('open');
+}
+
+function updatePayHint() {
+  if (payIdx < 0) return;
+  const it = items[payIdx];
+  const p1 = parseFloat(document.getElementById('pay-inp1').value) || 0;
+  const p2 = parseFloat(document.getElementById('pay-inp2').value) || 0;
+  const paid = p1 + p2;
+  const remain = it.amount - paid;
+  const hint = document.getElementById('pay-hint');
+  if (paid === 0) {
+    hint.textContent = `ต้องจ่ายรวม ${fmt(it.amount)}`;
+    hint.className = 'pay-hint info';
+  } else if (remain > 0) {
+    hint.textContent = `จ่ายแล้ว ${fmt(paid)} · ยังขาด ${fmt(remain)}`;
+    hint.className = 'pay-hint warn';
+  } else if (remain < 0) {
+    hint.textContent = `จ่ายเกิน ${fmt(Math.abs(remain))}`;
+    hint.className = 'pay-hint warn';
+  } else {
+    hint.textContent = `✓ ครบพอดี ${fmt(paid)}`;
+    hint.className = 'pay-hint ok';
+  }
+}
+
+function savePayModal() {
+  items[payIdx].pay1 = parseFloat(document.getElementById('pay-inp1').value) || 0;
+  items[payIdx].pay2 = parseFloat(document.getElementById('pay-inp2').value) || 0;
+  saveItems();
+  closePayModal();
+  renderItems();
+}
+
+document.getElementById('pay-modal-bg').addEventListener('click', function(e) {
+  if (e.target === this) closePayModal();
+});
+
+function deleteItem(idx) {
+  if (!confirm('ลบ "' + items[idx].name + '" ?')) return;
+  items.splice(idx, 1);
+  saveItems(); renderItems();
+}
+
+function openModal(idx) {
+  editIdx = idx;
+  document.getElementById('modal-title').textContent = idx === -1 ? 'เพิ่มรายการใหม่' : 'แก้ไขรายการ';
+  document.getElementById('modal-name').value = idx === -1 ? '' : items[idx].name;
+  document.getElementById('modal-amount').value = idx === -1 ? '' : items[idx].amount;
+  document.getElementById('modal-cat').value = idx === -1 ? 'need' : (items[idx].cat||'need');
+  document.getElementById('modal-bg').classList.add('open');
+  setTimeout(() => document.getElementById('modal-name').focus(), 100);
+}
+function closeModal() { document.getElementById('modal-bg').classList.remove('open'); }
+function saveModal() {
+  const name = document.getElementById('modal-name').value.trim();
+  const amount = parseFloat(document.getElementById('modal-amount').value) || 0;
+  const cat = document.getElementById('modal-cat').value;
+  if (!name) { document.getElementById('modal-name').focus(); return; }
+  if (editIdx === -1) { items.push({name, amount, cat}); }
+  else { items[editIdx] = {name, amount, cat}; }
+  saveItems(); closeModal(); renderItems();
+}
+document.getElementById('modal-bg').addEventListener('click', function(e) { if (e.target===this) closeModal(); });
+
+// ====================================================
+// Calc
+// ====================================================
+function resetIncome() {
+  document.getElementById('c2').value = 0;
+  document.getElementById('d2').value = 0;
+  calc();
+}
+
+function calc() {
+  const c2 = parseFloat(document.getElementById('c2').value) || 0;
+  const d2 = parseFloat(document.getElementById('d2').value) || 0;
+  const b2 = c2 + d2;
+  const totalExp = items.reduce((s,i) => s + i.amount, 0);
+  const bal = b2 - totalExp;
+  const half = bal / 2;
+
+  const b2el = document.getElementById('b2-val');
+  b2el.textContent = fmt(b2); setColor(b2el, b2);
+  const sInc = document.getElementById('s-inc');
+  sInc.textContent = fmt(b2); setColor(sInc, b2);
+  document.getElementById('s-exp').textContent = fmt(totalExp);
+  const sBal = document.getElementById('s-bal');
+  sBal.textContent = fmt(bal); setColor(sBal, bal);
+
+  const bMonth = document.getElementById('b-month');
+  bMonth.textContent = fmt(bal); setColor(bMonth, bal);
+  const bw1 = document.getElementById('b-w1');
+  bw1.textContent = fmt(half); setColor(bw1, half);
+  const bw2 = document.getElementById('b-w2');
+  bw2.textContent = fmt(half); setColor(bw2, half);
+  const dw1 = document.getElementById('d-w1');
+  dw1.textContent = fmt(half/12); setColor(dw1, half/12);
+  const dw2 = document.getElementById('d-w2');
+  dw2.textContent = fmt(half/12); setColor(dw2, half/12);
+
+  renderGoal();
+  updateSaveBtn();
+}
+
+function updateSaveBtn() {
+  const c2 = parseFloat(document.getElementById('c2').value) || 0;
+  const d2 = parseFloat(document.getElementById('d2').value) || 0;
+  const btn = document.getElementById('save-round-btn');
+  const lbl = document.getElementById('save-round-lbl');
+  const ready = c2 > 0 && d2 > 0;
+  btn.style.opacity = ready ? '1' : '0.4';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+  btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+  if (ready) {
+    lbl.textContent = '+ บันทึกก้อนนี้';
+  } else if (c2 > 0 && d2 === 0) {
+    lbl.textContent = 'ยังขาดงวด 2';
+  } else if (c2 === 0 && d2 > 0) {
+    lbl.textContent = 'ยังขาดงวด 1';
+  } else {
+    lbl.textContent = 'กรอกรายรับให้ครบ 2 งวดก่อน';
+  }
+}
+
+// ====================================================
+// Goal
+// ====================================================
+function renderGoal() {
+  const goalInp = parseFloat(document.getElementById('goal-input').value) || 0;
+  try { localStorage.setItem(GOAL_KEY, goalInp); } catch(e){}
+
+  const totalBal = history.reduce((s,h) => s + h.bal, 0);
+  const pct = goalInp > 0 ? Math.min((totalBal / goalInp) * 100, 100) : 0;
+  const remain = Math.max(goalInp - totalBal, 0);
+  const roundsLeft = 24 - history.length;
+  const perRound = roundsLeft > 0 ? remain / roundsLeft : 0;
+
+  document.getElementById('goal-saved-lbl').textContent = 'เก็บได้ ' + fmt(totalBal);
+  document.getElementById('goal-pct-lbl').textContent = pct.toFixed(1) + '%';
+  const bar = document.getElementById('goal-bar');
+  bar.style.width = pct + '%';
+  bar.className = 'goal-bar-fill' + (pct >= 100 ? ' over' : pct >= 70 ? '' : ' warn');
+  document.getElementById('goal-remain').textContent = fmt(remain);
+  document.getElementById('goal-per-round').textContent = fmt(perRound);
+}
+
+try { document.getElementById('goal-input').value = localStorage.getItem(GOAL_KEY) || 0; } catch(e){}
+
+// ====================================================
+// History
+// ====================================================
+function saveRound() {
+  const c2 = parseFloat(document.getElementById('c2').value) || 0;
+  const d2 = parseFloat(document.getElementById('d2').value) || 0;
+  if (c2 === 0 || d2 === 0) { alert('กรอกรายรับให้ครบทั้งงวด 1 และงวด 2 ก่อนนะครับ'); return; }
+  const totalExp = items.reduce((s,i) => s + i.amount, 0);
+  const bal = (c2 + d2) - totalExp;
+  history.push({ no: history.length + 1, w1: c2, w2: d2, total: c2+d2, exp: totalExp, bal, note: '', date: new Date().toLocaleDateString('th-TH') });
+  saveHistory();
+  renderHistory();
+}
+
+function openRoundModal(idx) {
+  editRoundIdx = idx;
+  document.getElementById('round-modal-no').textContent = history[idx].no;
+  document.getElementById('round-w1').value = history[idx].w1;
+  document.getElementById('round-w2').value = history[idx].w2;
+  document.getElementById('round-note').value = history[idx].note || '';
+  document.getElementById('round-modal-bg').classList.add('open');
+}
+function closeRoundModal() { document.getElementById('round-modal-bg').classList.remove('open'); }
+function saveRoundEdit() {
+  const w1 = parseFloat(document.getElementById('round-w1').value) || 0;
+  const w2 = parseFloat(document.getElementById('round-w2').value) || 0;
+  const note = document.getElementById('round-note').value.trim();
+  const totalExp = items.reduce((s,i) => s + i.amount, 0);
+  history[editRoundIdx] = { ...history[editRoundIdx], w1, w2, total: w1+w2, exp: totalExp, bal: (w1+w2)-totalExp, note };
+  saveHistory(); closeRoundModal(); renderHistory();
+}
+document.getElementById('round-modal-bg').addEventListener('click', function(e) { if (e.target===this) closeRoundModal(); });
+
+function deleteRound(idx) {
+  if (!confirm('ลบก้อนที่ ' + (idx+1) + ' ?')) return;
+  history.splice(idx, 1);
+  history.forEach((h,i) => h.no = i+1);
+  saveHistory(); renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (history.length === 0) {
+    list.innerHTML = '<div style="padding:14px 16px;font-size:13px;color:var(--hint);text-align:center">ยังไม่มีข้อมูล — กดบันทึกก้อนนี้</div>';
+  } else {
+    list.innerHTML = history.map((h, idx) => `
+      <div class="hist-item">
+        <div class="hist-left">
+          <div><span class="hist-no">ก้อนที่ ${h.no}</span><span class="hist-date">${h.date||''}</span></div>
+          <div class="hist-sub">งวด1: ${fmt(h.w1)} | งวด2: ${fmt(h.w2)}</div>
+          ${h.note ? `<div class="hist-note">📝 ${h.note}</div>` : ''}
+        </div>
+        <button class="icon-btn edit" onclick="openRoundModal(${idx})">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="icon-btn del" onclick="deleteRound(${idx})">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5 3.5l.5 8M9 3.5l-.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    `).join('');
+  }
+
+  const totalInc = history.reduce((s,h) => s + h.total, 0);
+  const totalExp2 = history.reduce((s,h) => s + h.exp, 0);
+  const totalBal = history.reduce((s,h) => s + h.bal, 0);
+  const count = history.length;
+  const pct = Math.round((count/24)*100);
+  const avgBal = count > 0 ? totalBal / count : 0;
+  const remaining = avgBal * (24 - count);
+
+  const hti = document.getElementById('h-total-inc');
+  hti.textContent = fmt(totalInc); hti.className = 'bal-val pos';
+  document.getElementById('h-total-exp').textContent = fmt(totalExp2);
+  const htb = document.getElementById('h-total-bal');
+  htb.textContent = fmt(totalBal); setColor(htb, totalBal);
+  const hr = document.getElementById('h-remaining');
+  hr.textContent = count < 24 ? fmt(remaining) : '✓ ครบ 24 ก้อนแล้ว!';
+  document.getElementById('h-count').textContent = count;
+  document.getElementById('h-progress').textContent = pct + '%';
+
+  drawChart();
+  renderGoal();
+  renderSGoals();
+}
+
+// ====================================================
+// Chart
+// ====================================================
+function drawChart() {
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.offsetWidth || 380;
+  const h = 160;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  if (history.length === 0) {
+    ctx.fillStyle = '#55556a';
+    ctx.font = '13px Sarabun, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('ยังไม่มีข้อมูล', w/2, h/2);
+    return;
+  }
+
+  const pad = { top: 16, right: 12, bottom: 30, left: 10 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+  const n = history.length;
+  const barW = Math.min(Math.floor(cw / n) - 4, 32);
+  const incomes = history.map(h => h.total);
+  const bals = history.map(h => h.bal);
+  const maxVal = Math.max(...incomes, 1);
+  const minVal = Math.min(...bals, 0);
+  const range = maxVal - minVal || 1;
+
+  const toY = v => pad.top + ch - ((v - minVal) / range) * ch;
+
+  // zero line
+  const zeroY = toY(0);
+  ctx.strokeStyle = '#2e2e38';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, zeroY);
+  ctx.lineTo(pad.left + cw, zeroY);
+  ctx.stroke();
+
+  history.forEach((h, i) => {
+    const x = pad.left + (i / n) * cw + (cw/n - barW) / 2;
+    // income bar
+    const incY = toY(h.total);
+    ctx.fillStyle = '#1a3a4a';
+    ctx.beginPath();
+    ctx.roundRect(x, incY, barW, zeroY - incY, 3);
+    ctx.fill();
+    // bal bar
+    const balY = toY(Math.max(h.bal, 0));
+    const balH = Math.abs(toY(h.bal) - zeroY);
+    ctx.fillStyle = h.bal >= 0 ? '#0d4a32' : '#4a0d14';
+    ctx.beginPath();
+    if (h.bal >= 0) {
+      ctx.roundRect(x + barW*0.2, balY, barW*0.6, balH, 2);
+    } else {
+      ctx.roundRect(x + barW*0.2, zeroY, barW*0.6, balH, 2);
+    }
+    ctx.fill();
+    // label
+    ctx.fillStyle = '#55556a';
+    ctx.font = '10px IBM Plex Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(h.no, x + barW/2, h - pad.bottom + h + 8);
+    ctx.fillText(String(h.no), x + barW/2, h - 4);
+  });
+
+  // legend
+  ctx.font = '10px Sarabun, sans-serif';
+  ctx.fillStyle = '#1a3a4a'; ctx.fillRect(pad.left, h-22, 10, 8);
+  ctx.fillStyle = '#8888a0'; ctx.fillText('รายรับ', pad.left+13, h-15);
+  ctx.fillStyle = '#0d4a32'; ctx.fillRect(pad.left+55, h-22, 10, 8);
+  ctx.fillStyle = '#8888a0'; ctx.fillText('คงเหลือ', pad.left+68, h-15);
+}
+
+// ====================================================
+// Sync
+// ====================================================
+async function syncToSheets() {
+  const c2 = parseFloat(document.getElementById('c2').value) || 0;
+  const d2 = parseFloat(document.getElementById('d2').value) || 0;
+  const b2 = c2 + d2;
+  const totalExp = items.reduce((s,i) => s + i.amount, 0);
+  const bal = b2 - totalExp;
+
+  const btn = document.getElementById('sync-btn');
+  const msg = document.getElementById('status-msg');
+  const icon = document.getElementById('sync-icon');
+  const lbl = document.getElementById('sync-label');
+
+  if (!APPS_SCRIPT_URL) {
+    msg.className = 'status-msg err';
+    msg.textContent = '⚠ ยังไม่ได้วาง URL — แก้บรรทัด 492';
+    return;
+  }
+
+  btn.classList.add('loading');
+  icon.innerHTML = '<circle cx="9" cy="9" r="6" stroke="white" stroke-width="1.8" stroke-dasharray="25" stroke-dashoffset="25" stroke-linecap="round" style="animation:spin .7s linear infinite;transform-origin:center"/>';
+  lbl.textContent = 'กำลังอัปเดต...';
+  msg.className = 'status-msg'; msg.textContent = '';
+
+  const payload = {
+    income: { total: b2, w1: c2, w2: d2 },
+    items: items,
+    balance: { total: bal, half: bal/2 },
+    daily: { total: bal/24, half: bal/2/12 },
+    history: history,
+    yearly: {
+      income: b2*12, expense: totalExp*12, balance: bal*12,
+      w1: c2*12, w2: d2*12,
+      avgMonth: bal/1, avgDay: bal*12/365
+    }
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+    msg.className = 'status-msg ok';
+    msg.textContent = '✓ อัปเดต Sheets สำเร็จ!';
+  } catch(e) {
+    msg.className = 'status-msg err';
+    msg.textContent = '✕ อัปเดตไม่สำเร็จ: ' + e.message;
+  }
+  btn.classList.remove('loading');
+  icon.innerHTML = '<path d="M15 9A6 6 0 1 1 9 3" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M11.5 3H15.5V7" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>';
+  lbl.textContent = 'อัปเดต Google Sheets';
+}
+
+// ====================================================
+// Special Goals
+// ====================================================
+const SGOALS_KEY = 'budget_sgoals_v1';
+let sgoals = [];
+try { sgoals = JSON.parse(localStorage.getItem(SGOALS_KEY)) || [
+  { id: 0, name: 'ไปญี่ปุ่น 🇯🇵', target: 35000, saved: 0, linkedItem: 'ญี่ปุ่น' }
+]; } catch(e) { sgoals = []; }
+let sgNextId = sgoals.length;
+let editGoalIdx = -1;
+
+function saveSGoals() { try { localStorage.setItem(SGOALS_KEY, JSON.stringify(sgoals)); } catch(e){} }
+
+// คำนวณยอดที่สะสมจาก linkedItem × จำนวนก้อนที่บันทึกแล้ว
+function getLinkedSaved(g) {
+  if (!g.linkedItem) return g.saved;
+  const linkedExp = items.find(i => i.name.includes(g.linkedItem));
+  if (!linkedExp) return g.saved;
+  return linkedExp.amount * history.length + (g.saved || 0);
+}
+
+function renderSGoals() {
+  const list = document.getElementById('special-goals-list');
+  if (sgoals.length === 0) {
+    list.innerHTML = '<div style="padding:14px 16px;font-size:13px;color:var(--hint);text-align:center">ยังไม่มีเป้าหมาย</div>';
+    return;
+  }
+  list.innerHTML = sgoals.map((g, idx) => {
+    const linkedExp = g.linkedItem ? items.find(i => i.name.includes(g.linkedItem)) : null;
+    const monthlyAmt = linkedExp ? linkedExp.amount : 0;
+    const autoSaved = monthlyAmt * history.length;
+    const totalSaved = autoSaved + (g.saved || 0);
+    const pct = g.target > 0 ? Math.min((totalSaved / g.target) * 100, 100) : 0;
+    const remain = Math.max(g.target - totalSaved, 0);
+    const done = remain <= 0;
+    const monthsNeeded = monthlyAmt > 0 && remain > 0 ? Math.ceil(remain / monthlyAmt) : null;
+
+    return `
+    <div class="sgoal-item">
+      <div class="sgoal-header">
+        <div class="sgoal-name">${g.name}</div>
+        <span class="sgoal-pct">${pct.toFixed(0)}%</span>
+        <div class="sgoal-actions">
+          <button class="icon-btn edit" onclick="openGoalModal(${idx})">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn del" onclick="deleteGoal(${idx})">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3.5h10M5.5 3.5V2.5h3v1M5 3.5l.5 8M9 3.5l-.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+      ${linkedExp ? `<div style="font-size:11px;color:var(--accent);font-family:var(--mono);margin-bottom:4px">อิงจาก "${linkedExp.name}" ${fmt(monthlyAmt)}/เดือน × ${history.length} ก้อน = ${fmt(autoSaved)}</div>` : ''}
+      <div class="sgoal-amounts">
+        <span>เก็บได้ ${fmt(totalSaved)} / ${fmt(g.target)}</span>
+        <span class="sgoal-remain ${done?'done':''}">${done ? '✓ ถึงเป้าแล้ว!' : `ขาดอีก ${fmt(remain)}`}</span>
+      </div>
+      <div class="sgoal-bar-bg">
+        <div class="sgoal-bar-fill ${done?'done':''}" style="width:${pct}%"></div>
+      </div>
+      ${!done && monthsNeeded ? `<div style="font-size:11px;color:var(--hint);font-family:var(--mono);margin-bottom:4px">จะครบใน ~${monthsNeeded} เดือน (${fmt(monthlyAmt)}/เดือน)</div>` : ''}
+      ${!done && !linkedExp ? `
+      <div class="sgoal-add-saved">
+        <span style="font-size:12px;color:var(--muted)">เพิ่มยอด</span>
+        <input class="sgoal-add-inp" type="number" id="sg-add-${idx}" min="0" inputmode="decimal" placeholder="0">
+        <button class="sgoal-add-btn" onclick="addGoalSaved(${idx})">+ เพิ่ม</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function addGoalSaved(idx) {
+  const inp = document.getElementById('sg-add-' + idx);
+  const amount = parseFloat(inp.value) || 0;
+  if (amount <= 0) { inp.focus(); return; }
+  sgoals[idx].saved += amount;
+  saveSGoals();
+  renderSGoals();
+}
+
+function deleteGoal(idx) {
+  if (!confirm('ลบเป้าหมาย "' + sgoals[idx].name + '" ?')) return;
+  sgoals.splice(idx, 1);
+  saveSGoals(); renderSGoals();
+}
+
+function openGoalModal(idx) {
+  editGoalIdx = idx;
+  document.getElementById('goal-modal-title').textContent = idx === -1 ? 'เพิ่มเป้าหมาย' : 'แก้ไขเป้าหมาย';
+  document.getElementById('goal-modal-name').value = idx === -1 ? '' : sgoals[idx].name;
+  document.getElementById('goal-modal-target').value = idx === -1 ? '' : sgoals[idx].target;
+  document.getElementById('goal-modal-saved').value = idx === -1 ? 0 : sgoals[idx].saved;
+  document.getElementById('goal-modal-bg').classList.add('open');
+  setTimeout(() => document.getElementById('goal-modal-name').focus(), 100);
+}
+
+function closeGoalModal() { document.getElementById('goal-modal-bg').classList.remove('open'); }
+
+function saveGoalModal() {
+  const name = document.getElementById('goal-modal-name').value.trim();
+  const target = parseFloat(document.getElementById('goal-modal-target').value) || 0;
+  const saved = parseFloat(document.getElementById('goal-modal-saved').value) || 0;
+  if (!name) { document.getElementById('goal-modal-name').focus(); return; }
+  if (editGoalIdx === -1) {
+    sgoals.push({ id: sgNextId++, name, target, saved });
+  } else {
+    sgoals[editGoalIdx] = { ...sgoals[editGoalIdx], name, target, saved };
+  }
+  saveSGoals(); closeGoalModal(); renderSGoals();
+}
+
+document.getElementById('goal-modal-bg').addEventListener('click', function(e) {
+  if (e.target === this) closeGoalModal();
+});
+
+renderItems();
+renderHistory();
+renderSGoals();
+</script>
+</body>
+</html>
